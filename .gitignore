@@ -1,0 +1,18 @@
+# Secrets & environment
+.env.local
+.env
+
+# macOS
+.DS_Store
+
+# App runtime files
+.app.pid
+app.log
+
+# Logs
+Outputs/logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo

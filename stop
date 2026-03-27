@@ -1,0 +1,21 @@
+#!/bin/bash
+# stop — Stop the MD Converter web app
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PID_FILE="$SCRIPT_DIR/.app.pid"
+
+if [ ! -f "$PID_FILE" ]; then
+  echo "ℹ️  No PID file found. Is the app running?"
+  exit 0
+fi
+
+PID=$(cat "$PID_FILE")
+
+if kill -0 "$PID" 2>/dev/null; then
+  kill "$PID"
+  rm -f "$PID_FILE"
+  echo "✅ MD Converter stopped (PID $PID)."
+else
+  echo "ℹ️  Process $PID is not running (already stopped)."
+  rm -f "$PID_FILE"
+fi

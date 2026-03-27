@@ -1,0 +1,185 @@
+{
+  "type": "object",
+  "description": "Global Instruction: Prioritize consolidated, fund-level figures. For monetary values, always use the amount in the fund’s reporting currency ('report_currency'). Do not perform currency conversions unless an exchange rate is explicitly provided. If consolidating multiple vehicles, only sum figures that share the same reporting currency.",
+  "properties": {
+    "report_metadata": {
+      "type": "object",
+      "properties": {
+        "fund_name": {
+          "type": "string",
+          "description": "The official name of the fund as written in the report. Return the name exactly as written, including any special characters or abbreviations."
+        },
+        "report_date": {
+          "type": "string",
+          "description": "The report's closing date (end of the reporting period). Prioritize this over the publication date. Return in DD-MM-YYYY format."
+        },
+        "fund_investment_region": {
+          "type": "string",
+          "description": "Geographic region, or country in which the fund invests. If there is a country specified alongside regions, provide only country. Ensure this is for the fund and NOT for a portfolio investment"
+        },
+        "report_currency": {
+          "type": "string",
+          "description": "The currency in which the fund reports, ensuring it reflects the fund's financial reporting currency. Do not mix this with the currency used by individual portfolio companies. Prioritize explicit mentions such as 'Fund currency' or 'Reporting currency.' If not stated, determine the currency from financial figures in the fund's income statement or balance sheet. Return the currency in 3-letter ISO 4217 format (e.g., USD, EUR, GBP)."
+        },
+        "fund_vintage": {
+          "type": "string",
+          "description": "The fund vintage year. If not explicitly mentioned, identify vintage using the year of the first investment made. Return the vintage as a four-digit year (e.g., 2018)."
+        },
+        "fund_commitment": {
+          "type": "number",
+          "description": "Total amount committed by LPs to the fund. This is NOT the same as capital contributed or capital called, expressed as a full number (e.g. 150000000 for $150 M)."
+        },
+        "fund_capitalinvested": {
+          "type": "number",
+          "description": "The total amount of capital that has been invested by the fund into all the companies, this includes Active and Exited companies. This is not capital called, contributed capital or capital commited. This is often found in a portfolio summary table, with a column header of invested cost or Total Cost. If multiple numbers are possible provided, use the more precise number. Express as a full number (e.g. 150000000 for $150 M)."
+        },
+        "fund_contributions": {
+          "type": "number",
+          "nullable": true,
+          "description": "The total amount of capital that has been called from investors since inception. This can also be called Capital Contributions. This should be the sum the amount called for both the General Partner and the Limited Partners. Express as a full number (e.g. 150000000 for $150 M)."
+        },
+        "fund_distributions": {
+          "type": "number",
+          "nullable": true,
+          "description": "The cumulative amount of cash or value distributed by the fund to all partners (both General Partner and Limited Partners) since inception. Also referred to as 'Total Distributions', 'Capital Distributed', or 'Capital Returned'. IMPORTANT: This figure appears in the fund-level statements, typically within the 'Statement of Changes in Partners’ Capital', 'Capital Account Summary', or 'Fund Overview'. It represents the total cash or stock actually paid out to investors. DO NOT extract portfolio-level values such as 'Realized Proceeds', 'Realizations', 'Exit Value', or 'Portfolio Company Distributions' — those refer to underlying investment sales, not actual fund distributions. The correct value must be a cumulative, since-inception fund-level total. Express as a full number (e.g. 150000000 for $150 M)."
+        },
+        "fund_nav": {
+          "type": "number",
+          "nullable": true,
+          "description": "The fund's Net Asset Value (NAV). NAV is also called 'Partners' Capital' or 'Total Partners' Equity'. It is calculated as Total Assets MINUS Total Liabilities. Do not guess or use the 'Total Assets' or 'FMV of Investments' value. Look for this value at the bottom of the 'Balance Sheet' or 'Statement of Assets and Liabilities'. Express as a full number (e.g. 150000000 for $150 M)."
+        },
+        "fund_investment_assets": {
+          "type": "number",
+          "nullable": true,
+          "description": "The value of assets invested in portfolio companies, usually labeled 'Investments at Fair Value', as of the `report_date`. Return the full numerical value, applying any scale indicators."
+        },
+        "fund_letterupdate": {
+          "type": "string",
+          "description": "A concise 3-5 sentence summary of the main points from the fund manager's letter or quarterly update. Focus on performance highlights, strategy, and market outlook."
+        }
+      },
+      "required": [
+        "fund_name",
+        "report_date",
+        "fund_investment_region",
+        "report_currency",
+        "fund_vintage",
+        "fund_commitment",
+        "fund_capitalinvested",
+        "fund_contributions",
+        "fund_distributions",
+        "fund_nav",
+        "fund_investment_assets",
+        "fund_letterupdate"
+      ]
+    },
+    "portfolio_companies": {
+      "type": "array",
+      "description": "Extract ALL unique direct portfolio **investments** mentioned anywhere in the document. This includes active investments, exited companies, write-offs, **investments in other funds (e.g., LP Interests)**, and any entity that the fund has ever directly invested in or currently holds. **Exclude any underlying or indirect investments held by these portfolio funds or companies.** Do not filter based on investment size, status, or performance. Include every single directly held investment name found in the document. If an investment appears multiple times, include it only once with the most complete set of information available across sections.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "investment_name": {
+            "type": "string",
+            "description": "Name of the portfolio investment (e.g., company or fund). Return exactly as stated. Typically found in the Schedule of Investments."
+          },
+          "investment_description": {
+            "type": "string",
+            "description": "Provide a 1-2 sentence description of the company's business, including its sector, industry, and core activities, while keeping it concise. If available, include details on the business model (e.g., SaaS, marketplace, subscription). Ensure the description is clear and specific, avoiding generic terms."
+          },
+          "investment_update": {
+            "type": "string",
+            "description": "A 2-3 sentence summary of the company's or fund's progress, challenges, or key events mentioned in the report for the current period."
+          },
+          "investment_geography": {
+            "type": "string",
+            "description": "The primary country or region where the portfolio investment operates. **Do not extract city-level data.** Return the full country name."
+          },
+          "investment_first_investment_date": {
+            "type": "string",
+            "description": "The earliest recorded investment date, labeled 'Initial Investment Date' or similar. If multiple dates are listed, **select the earliest one**. Convert all formats to 'dd-mm-yyyy' (e.g., 'Mar-2021' becomes '01-03-2021')."
+          },
+          "investment_ownership": {
+            "type": "number",
+            "description": "The percentage of the company’s equity that the FUND owns on a fully diluted basis, as of the report date. This refers to the FUND’s stake in the COMPANY’s cap table, not the share of a PARTNER’s capital in the FUND, not GP carry, and not LP ownership in the FUND. Always return only the FUND’s fully diluted ownership percentage in the COMPANY."
+          },
+          "investment_total_cost": {
+            "type": "number",
+            "nullable": true,
+            "description": "The cumulative cost of the investment, often listed under **'Cost' or 'Invested Capital' or 'Investment Cost'**. **Prioritize the value in fund currency.** Return the full numerical value, applying scale indicators (e.g., 'in thousands'). Express as a full number (e.g. 150000000 for $150 M)."
+          },
+          "investment_realized": {
+            "type": "number",
+            "nullable": true,
+            "description": "The total amount that the fund has realized in a company. This can be both a partial realization or a full realizations. This can also be referred to as exit proceeds. If a company name appears multiple times in the table or has multiple entries within the same table, sum all associated realized values together. A column labeled 'Security Type' or similar (e.g., 'Common','Preferred', 'Seed,' 'Series A') typically indicates different investment rounds; when this is present, sum the realizations for all rounds of the same company. If both a rounded number and a more precise figure are available, return the precise number. Express as a full number (e.g. 150000000 for $150 M)."
+          },
+          "investment_unrealized": {
+            "type": "number",
+            "nullable": true,
+            "description": "The current fair value of the investment as reported, usually labeled **'Fair Value', 'FMV', 'unrealized value' or 'Carrying Value'**. **Prioritize the value in fund currency.** Return the full numerical value, applying scale indicators. If multiple values exist for the same investment, sum the values. Express as a full number (e.g. 150000000 for $150 M)."
+          },
+          "investment_industry": {
+            "type": "string",
+            "nullable": true,
+            "description": "The industry classification of the portfolio company, labeled 'Industry' or 'Sector'."
+          },
+          "investment_irr": {
+            "type": "number",
+            "nullable": true,
+            "description": "The Internal Rate of Return (IRR) for the investment as of the report date. This value is specific to the company, not the overall fund, and is typically found in a portfolio summary table. This is not MOIC or MOI. This is expressed as a percentage."
+          },
+          "investment_exit_date": {
+            "type": "string",
+            "nullable": true,
+            "description": "The date when the fund fully exited or wrote off its investment. This date may be found in tables for realized or exited investments. Look for headers like 'Exit Date' or 'Date of Realization'. Return the date in DD-MM-YYYY format."
+          },
+          "investment_currency": {
+            "type": "string",
+            "nullable": true,
+            "description": "The currency in which the porfolio investment reports in. Revenues, EBITDA, cash and other metrics will give an indication."
+          },
+          "investment_revenue": {
+            "type": "number",
+            "nullable": true,
+            "description": "The company's revenue for the quarter. This should align with the latest report date and year. Ensure the revenue is reported within the correct fiscal year of the company. This is not the trailing twelve months (TTM) or Last Twelve Months (LTM) revenue. If quarterly revenue is not provided, return null. Do NOT perform a calculation. Express as a full number (e.g. 150000000 for $150 M)."
+          },
+          "investment_ebitda": {
+            "type": "number",
+            "nullable": true,
+            "description": "The company's EBITDA for the quarter. This should align with the latest report date and year. Ensure the EBITDA is reported within the correct fiscal year of the company. This is not the trailing twelve months (TTM) or Last Twelve Months (LTM) revenue. If quarterly revenue is not provided, return null. Express as a full number (e.g. 150000000 for $150 M)."
+          },
+          "investment_cash": {
+            "type": "number",
+            "nullable": true,
+            "description": "The total cash on hand for the portfolio company as of `report_date`. It may be labeled as 'Cash Balance' or 'Available Cash.' This is NOT net debt."
+          },
+          "investment_fte": {
+            "type": "number",
+            "nullable": true,
+            "description": "The total number of employees for the portfolio company as of `report_date`. It may be labeled as 'FTE' (Full-Time Equivalent), 'FT' (Full-Time), or 'Emp' (Employees)."
+          }
+        },
+        "required": [
+          "investment_name",
+          "investment_description",
+          "investment_update",
+          "investment_geography",
+          "investment_first_investment_date",
+          "investment_ownership",
+          "investment_total_cost",
+          "investment_realized",
+          "investment_unrealized",
+          "investment_industry",
+          "investment_irr",
+          "investment_exit_date",
+          "investment_currency",
+          "investment_revenue",
+          "investment_ebitda",
+          "investment_cash",
+          "investment_fte"
+        ]
+      }
+    }
+  },
+  "required": ["report_metadata", "portfolio_companies"]
+}

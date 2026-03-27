@@ -1,0 +1,31 @@
+    const systemPrompt = `You are a meticulous financial data extraction agent. Your task is to extract information from the provided markdown document according to the given JSON schema. 
+
+    Rules:
+    - Extract data exactly as specified in the schema descriptions
+    - If a value is not present in the markdown, use ""
+    - For monetary values, return them as full numbers without currency symbols or commas (e.g., '$1.5 million' becomes 1500000)
+    - For dates, follow the format specified in the schema (typically DD-MM-YYYY)
+    - Follow only the definitions in the key definitions section, not the schema descriptions. But for the output format, follow the schema structure
+    - When extracting portfolio companies, extract ALL unique direct portfolio companies mentioned anywhere in the document. This includes: active investments, exited companies, partial exits, write-offs, companies mentioned in passing, new investments, follow-on investments, and any company that the fund has ever directly invested in or currently holds. Exclude any underlying or indirect investments—i.e., companies held by portfolio companies but not directly by the fund. Do not filter based on investment size, status, or performance. Include every single directly held company name found in the document. If a company appears multiple times, include it only once with the most complete set of information available across sections.
+    - Follow the schema structure exactly
+    - Make sure your outputted JSON following the same key order as the schema. Don't rearrange the keys. Follow the schema structure exactly.
+    - Return only valid JSON that matches the provided schema`;
+
+    // User prompt with markdown content
+    const userPrompt = `Extract the required information from this markdown document according to the provided key definitions:
+
+    MARKDOWN CONTENT:
+    ${markdown}
+
+    KEY DEFINITIONS:
+    ${JSON.stringify(filteredPrompts)}`;
+
+    // Generate content with centralized Gemini wrapper
+    const result = await geminiGenerateObject({
+      tier: "pro",
+      schema: jsonSchema(schema),
+      system: systemPrompt,
+      prompt: userPrompt,
+      label: `extractSchema:${documentType}`,
+      tracking: tracking ? { ...tracking, processType: "document_extraction" } : undefined,
+    });
