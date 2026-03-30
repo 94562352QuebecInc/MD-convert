@@ -5,7 +5,8 @@
 > 2. Convert the entire PDF to rich Markdown.
 > 3. Extract the structured schema data.
 > 4. Write an investment professional summary.
-> 5. Produce **one `.md` output file per PDF**, named identically to the source PDF (e.g. `Q4_2023_Report.pdf` → `Q4_2023_Report.md`).
+> 5. Write an investment decision summary (analyst-oriented: positive/negative signals, risks, exit outlook).
+> 6. Produce **one `.md` output file per PDF**, named identically to the source PDF (e.g. `Q4_2023_Report.pdf` → `Q4_2023_Report.md`).
 
 ---
 
@@ -350,6 +351,40 @@ After completing Stage 3, write a concise summary of the document **from the poi
 
 ---
 
+## STAGE 3.75 — Write the Investment Decision Summary
+
+After completing Stage 3.5, produce a detailed **Investment Decision Summary** by reviewing **both** the extracted schema data (Stage 3) **and** the full document Markdown (Stage 2). This section is specifically designed for an investment analyst evaluating whether to buy, hold, or sell a position.
+
+> 🔴 **CRITICAL: This section must be 100% grounded in the source document. Do NOT invent, fabricate, or assume ANY information that is not explicitly stated or directly calculable from the document. If the document does not contain investment-relevant information for a category below, state "Not available in this document" — do NOT fill the gap with assumptions.**
+
+Structure the summary using the following sub-sections. Omit any sub-section entirely if the document provides zero relevant information for it:
+
+### Positive Financial Signals
+- Revenue growth, margin expansion, profitability improvements, NAV appreciation, strong DPI/MoIC/IRR trends, improving unit economics, successful fundraising rounds, valuation uplifts, cost reductions, and any other quantifiable positive financial indicators.
+- Always cite the specific figures and time periods from the document.
+
+### Negative Financial Signals
+- Revenue decline, margin compression, NAV erosion, rising credit costs, asset quality deterioration, cash burn acceleration, valuation markdowns, negative IRR, write-offs, and any other quantifiable negative financial indicators.
+- Always cite the specific figures and time periods from the document.
+
+### Key Business Developments
+- Strategic M&A activity, new product launches, geographic expansion, management changes, regulatory milestones (e.g., license approvals, IPO filings), major customer wins or losses, partnerships, and operational restructuring.
+- Clearly state whether each development is a catalyst (positive) or a risk (negative).
+
+### Risk Factors & Watchlist Items
+- Concentration risk, currency exposure, regulatory risk, key person dependency, liquidity concerns, covenant triggers, fund lifecycle constraints (e.g., investment period expiry), and any data points flagged with `<!-- WARNING -->` tags in the document.
+
+### Exit & Liquidity Outlook
+- Upcoming IPOs, M&A discussions, secondary sale processes, call options, fund term expiry, distribution forecasts, and any stated or implied timeline for liquidity events.
+
+**Formatting rules:**
+- Write in bullet-point format under each sub-section for scannability.
+- Every bullet must reference a specific fact, figure, or quote from the document.
+- Length: as detailed as the source document allows — do not artificially truncate. If the document is rich in data, this section should be comprehensive. If the document is sparse, keep it brief.
+- Tag the section with `<!-- DECISION-SUMMARY-START -->` and `<!-- DECISION-SUMMARY-END -->`.
+
+---
+
 ## STAGE 4 — Compile the Output `.md` File
 
 Produce a single `.md` file structured exactly as follows:
@@ -365,16 +400,27 @@ Produce a single `.md` file structured exactly as follows:
 > 🟢 **DOCUMENT SCHEMA IDENTIFICATION:**
 > This document has been identified as: **[Schema Name and Letter, e.g. "Schema A — Fund Report (Quarterly / Annual)"]**
 > Fund-Level Schema: **[e.g. A1: Fund-Level Fields]** | Portfolio Schema: **[e.g. A2: Portfolio Company Fields, or "N/A"]**
+> This document contains **three complementary data sources**: (1) Extracted Schema Data, (2) Full Document Content, and (3) an Investment Decision Summary. All three should be consulted for a complete picture.
 >
-> *(If no schema matched, omit this block entirely and begin directly with the LLM Reading Instructions below.)*
+> *(If no schema matched, omit the schema line above but keep all other instructions. Begin directly with the LLM Reading Instructions below.)*
 
 ---
 
 > 🔴 **LLM READING INSTRUCTIONS:**
-> Read the Schema Block (Section 1) in full before reading the Document Content (Section 2).
-> The Schema Block contains all extracted structured data. The Document Content is the full source text.
-> Use the inline tags (<!-- TAG -->) throughout the document to navigate to specific data points quickly.
-> When a field value conflicts between sections, prefer the value tagged with <!-- FINANCIALS --> over narrative text.
+> This document contains three data layers that should be read together for the most complete and holistic understanding:
+>
+> **Step 1 — Read the Extracted Schema (Section 1):** Contains structured, field-level data extracted from the source document. Start here for quick quantitative facts.
+>
+> **Step 2 — Read the Investment Decision Summary (Section 0B):** Contains an analyst-oriented synthesis of positive/negative financial signals, key business developments, risks, and exit outlook. This section cross-references both the schema and the full document text, surfacing investment-relevant information that may not appear in structured fields.
+>
+> **Step 3 — Read the Full Document Content (Section 2):** Contains the complete, word-for-word Markdown conversion of the source PDF. Use this as the ground-truth reference for any detail not captured in Sections 1 or 0B. Use the inline tags (`<!-- TAG -->`) to navigate to specific data points quickly.
+>
+> **Conflict Resolution:** When a data point conflicts between sections, apply this priority order:
+> 1. Values tagged with `<!-- FINANCIALS -->` in Section 2 (highest authority — direct from source)
+> 2. Extracted Schema (Section 1)
+> 3. Investment Decision Summary (Section 0B) and Investment Professional Summary (Section 0)
+>
+> **Cross-Reference Mandate:** Do NOT rely on any single section alone. The Schema may miss contextual nuance found in the full text. The full text may bury critical figures in dense prose that the Schema and Decision Summary have surfaced. Always cross-reference for the most accurate and complete picture.
 
 ---
 
@@ -384,6 +430,15 @@ Produce a single `.md` file structured exactly as follows:
 *[Insert the ≤300-word investment professional summary here. Written in plain prose. Interprets the document from the perspective of an investor or investment analyst — what the numbers mean, what stands out, and what warrants attention. If no schema was matched, this is based on the full document text.]*
 
 <!-- SUMMARY-END -->
+
+---
+
+# SECTION 0B — INVESTMENT DECISION SUMMARY
+<!-- DECISION-SUMMARY-START -->
+
+*[Insert the detailed Investment Decision Summary here, structured with the sub-sections defined in Stage 3.75: Positive Financial Signals, Negative Financial Signals, Key Business Developments, Risk Factors & Watchlist Items, and Exit & Liquidity Outlook. Every bullet must be grounded in specific facts and figures from the document. Omit any sub-section for which the document provides no relevant information. Do NOT fabricate or infer information not present in the source document.]*
+
+<!-- DECISION-SUMMARY-END -->
 
 ---
 
@@ -431,7 +486,7 @@ Produce a single `.md` file structured exactly as follows:
 - **Naming:** The output file must use the **exact same filename as the source PDF**, with the extension changed to `.md` (e.g. `Q4_2023_NovastarIII.pdf` → `Q4_2023_NovastarIII.md`). Do not rename based on fund name or report date.
 - **Completeness:** Every page of the PDF must appear in Section 2 in full. **Truncation of any kind is a critical failure.** This includes: stopping early, summarizing paragraphs, replacing content with ellipses or placeholders, omitting pages, or condensing tables. If the output is long, continue until every page is fully rendered.
 - **Schema identification first:** The schema identification statement always appears before Section 1. If no schema matched, omit it entirely.
-- **Schema first:** Section 1 (schema) always precedes Section 2 (document).
+- **Schema first:** Section 1 (schema) always precedes Section 2 (document). Section 0B (Investment Decision Summary) always follows Section 0 (Investment Professional Summary).
 - **Self-contained:** The file must be readable and navigable by another LLM without access to the original PDF.
 
 ---

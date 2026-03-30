@@ -29,6 +29,7 @@ import os
 from typing import Dict, List, Optional, Tuple
 import sys
 import threading
+import time
 import traceback
 
 # ── Optional libraries ─────────────────────────────────────────────────────────
@@ -57,15 +58,17 @@ except ImportError:
     HAS_XLSX = False
 
 # ── Configuration ─────────────────────────────────────────────────────────────
+BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
+
 def _load_api_key() -> str:
-    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    key = os.environ.get("ANTHROPIC_API_KEY", "") or os.environ.get("AI_MODEL_MODEL_ANTHROPIC_KEY", "")
     if not key:
         env_path = os.path.join(BASE_DIR, ".env.local")
         if os.path.exists(env_path):
             with open(env_path) as f:
                 for line in f:
                     line = line.strip()
-                    if line.startswith("ANTHROPIC_API_KEY="):
+                    if line.startswith("ANTHROPIC_API_KEY=") or line.startswith("AI_MODEL_MODEL_ANTHROPIC_KEY="):
                         key = line.split("=", 1)[1].strip().strip('"').strip("'")
                         break
     if not key:
@@ -74,7 +77,6 @@ def _load_api_key() -> str:
 
 API_KEY = _load_api_key()
 MODEL       = "claude-opus-4-5"
-BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 PDF_DIR     = os.path.join(BASE_DIR, "PDFs")
 PROMPT_PATH = os.path.join(BASE_DIR, "Prompt", "prompt_file.md")
 OUTPUT_DIR  = os.path.join(BASE_DIR, "Outputs")
@@ -83,6 +85,7 @@ LOG_DIR     = os.path.join(OUTPUT_DIR, "logs")
 MAX_TOKENS_PER_PASS = 16000   # max output tokens per API call
 MAX_PASSES          = 12      # safety cap on output continuation loops
 PAGES_PER_CHUNK     = 15      # pages per chunk in chunked fallback mode
+MAX_CONNECTION_RETRIES = 3    # retries for transient connection errors
 
 SUPPORTED_EXTENSIONS = {".pdf", ".pptx", ".docx", ".xlsx", ".xls"}
 
@@ -315,9 +318,10 @@ The SECTION 2 full-document Markdown has already been extracted and assembled
 for you below this message. It is complete — do NOT re-extract it.
 
 Your task is ONLY to produce the following and nothing else:
-1. The document header block (Fund name, extraction date, schema identification)
+1. The document header block (Fund name, extraction date, schema identification, LLM reading instructions)
 2. SECTION 0 — INVESTMENT PROFESSIONAL SUMMARY
-3. SECTION 1 — EXTRACTED SCHEMA DATA
+3. SECTION 0B — INVESTMENT DECISION SUMMARY
+4. SECTION 1 — EXTRACTED SCHEMA DATA
 
 After completing Section 1, output the exact text:
   __SECTIONS_01_COMPLETE__
@@ -379,8 +383,25 @@ def _stream_with_continuation(
                 stop_reason   = final_msg.stop_reason
                 input_tokens  = final_msg.usage.input_tokens
                 output_tokens = final_msg.usage.output_tokens
+        except anthropic.APIConnectionError as conn_err:
+            _stop_hb.set()
+            if not hasattr(_stream_with_continuation, '_retry_count'):
+                _stream_with_continuation._retry_count = 0
+            _stream_with_continuation._retry_count += 1
+            if _stream_with_continuation._retry_count <= MAX_CONNECTION_RETRIES:
+                wait = 2 ** _stream_with_continuation._retry_count
+                logger.log(f"  [{label}] Connection error: {conn_err}. Retrying in {wait}s… (attempt {_stream_with_continuation._retry_count}/{MAX_CONNECTION_RETRIES})")
+                time.sleep(wait)
+                pass_num -= 1  # don't count this as a pass
+                continue
+            else:
+                _stream_with_continuation._retry_count = 0
+                raise
         finally:
             _stop_hb.set()
+
+        # Reset retry counter on success
+        _stream_with_continuation._retry_count = 0
 
         logger.record_call(label, pass_num, input_tokens, output_tokens,
                            stop_reason, len(pass_text))
