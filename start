@@ -12,7 +12,7 @@ fi
 
 echo "🚀 Starting MD Converter…"
 cd "$SCRIPT_DIR"
-nohup python3 app.py > "$SCRIPT_DIR/app.log" 2>&1 &
+nohup "$SCRIPT_DIR/.venv/bin/python3.12" app.py > "$SCRIPT_DIR/app.log" 2>&1 &
 echo $! > "$PID_FILE"
 sleep 1.5
 

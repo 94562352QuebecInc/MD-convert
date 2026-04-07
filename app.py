@@ -71,28 +71,41 @@ def list_uploads():
 @app.route("/api/upload", methods=["POST"])
 def upload_file():
     """Upload one or more documents to PDFs/."""
+    print(f"[UPLOAD] Content-Type: {request.content_type}", flush=True)
+    print(f"[UPLOAD] request.files keys: {list(request.files.keys())}", flush=True)
+    print(f"[UPLOAD] Content-Length: {request.content_length}", flush=True)
+
     if "files" not in request.files:
-        return jsonify({"error": "No files part"}), 400
+        print("[UPLOAD] ERROR: 'files' key not in request.files", flush=True)
+        return jsonify({"error": "No files part", "uploaded": [], "errors": ["No files detected in upload. Try clicking the upload area instead of dragging."]}), 400
     uploaded = []
     errors   = []
-    for file in request.files.getlist("files"):
+    file_list = request.files.getlist("files")
+    print(f"[UPLOAD] Number of files received: {len(file_list)}", flush=True)
+    for file in file_list:
         if not file.filename:
+            print("[UPLOAD] Skipping file with empty filename", flush=True)
             continue
+        print(f"[UPLOAD] Processing: {file.filename} ({file.content_type})", flush=True)
         ext = os.path.splitext(file.filename)[1].lower()
         if ext not in SUPPORTED_EXTENSIONS:
             errors.append(f"{file.filename}: unsupported file type ({ext})")
             continue
         fname = secure_filename(file.filename)
+        if not fname:
+            # secure_filename can return empty string for non-ASCII filenames
+            fname = f"upload_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}"
         dest  = os.path.join(PDF_DIR, fname)
         file.save(dest)
         uploaded.append(fname)
+        print(f"[UPLOAD] Saved: {fname} → {dest}", flush=True)
     return jsonify({"uploaded": uploaded, "errors": errors})
 
 
 @app.route("/api/uploads/<filename>", methods=["DELETE"])
 def delete_upload(filename: str):
     """Delete a file from PDFs/."""
-    path = os.path.join(PDF_DIR, secure_filename(filename))
+    path = safe_path(PDF_DIR, filename)
     if not os.path.isfile(path):
         return jsonify({"error": "File not found"}), 404
     os.remove(path)
@@ -135,6 +148,19 @@ def delete_output(filename: str):
     return jsonify({"deleted": filename})
 
 
+@app.route("/api/outputs", methods=["DELETE"])
+def delete_all_outputs():
+    """Delete ALL .md files in Outputs/."""
+    deleted = []
+    for f in os.listdir(OUTPUT_DIR):
+        if f.endswith(".md"):
+            path = os.path.join(OUTPUT_DIR, f)
+            if os.path.isfile(path):
+                os.remove(path)
+                deleted.append(f)
+    return jsonify({"deleted": deleted, "count": len(deleted)})
+
+
 @app.route("/api/logs", methods=["GET"])
 def list_logs():
     """List log files in Outputs/logs/."""
@@ -168,10 +194,12 @@ def run_conversion():
     """
     data  = request.get_json(force=True, silent=True) or {}
     files = data.get("files", [])  # list of basenames
+    model = data.get("model", "claude-opus-4-6")
 
     script = os.path.join(BASE_DIR, "mdconver.py")
+    venv_python = os.path.join(BASE_DIR, ".venv", "bin", "python3.12")
     # -u = force unbuffered stdout so every print() appears immediately in the SSE stream
-    cmd    = [sys.executable, "-u", script] + files
+    cmd    = [venv_python, "-u", script, "--model", model] + files
     env    = {**os.environ, "PYTHONUNBUFFERED": "1"}
 
     def generate():
